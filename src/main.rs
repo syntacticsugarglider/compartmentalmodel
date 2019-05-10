@@ -100,6 +100,31 @@ impl Diffusion {
     }
 }
 
+pub struct Infection {
+    target: Bucket,
+    probability: f32,
+}
+
+impl Behaviour for Infection {
+    fn update(&mut self, bucket: Bucket, delta: u64) {
+        let to_move = ((self.probability * self.target.get() as f32).round() as u64 * delta) as i32;
+        if self.target.get() as i32 - to_move > 0 {
+            self.target += to_move;
+            let mut bucket = bucket;
+            bucket -= to_move;
+        }
+    }
+}
+
+impl Infection {
+    fn new(target: Bucket, probability: f32) -> Box<dyn Behaviour> {
+        Box::new(Diffusion {
+            target,
+            probability,
+        })
+    }
+}
+
 #[derive(Default)]
 pub struct Model {
     buckets: Vec<Bucket>,
@@ -149,11 +174,12 @@ fn main() {
     let mut s = Bucket::new("Susceptible");
     let mut i = Bucket::new("Infected");
     let mut r = Bucket::new("Recovered");
-    let infection = Diffusion::new(i.clone(), 0.01);
+    let infection = Infection::new(i.clone(), 0.01);
     let recovery = Diffusion::new(r.clone(), 0.2);
     s.add(infection);
     i.add(recovery);
     s += 1000;
+    i += 1;
     model.add(s);
     model.add(i);
     model.add(r);
